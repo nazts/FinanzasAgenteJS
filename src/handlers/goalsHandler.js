@@ -97,9 +97,10 @@ export async function goalsTextHandler(ctx) {
   if (state.step === 'deadline') {
     let deadline = null;
     if (text.toLowerCase() !== 'omitir') {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       const d = new Date(text);
-      if (isNaN(d.getTime())) {
-        await ctx.reply('❌ Fecha inválida. Usa formato AAAA-MM-DD o escribe *omitir*:', {
+      if (!dateRegex.test(text) || isNaN(d.getTime()) || d <= new Date()) {
+        await ctx.reply('❌ Fecha inválida. Usa formato AAAA-MM-DD con una fecha futura, o escribe *omitir*:', {
           parse_mode: 'Markdown',
         });
         return true;
