@@ -119,3 +119,49 @@ export function deleteGoal(goalId, userId) {
     .prepare('DELETE FROM goals WHERE id = ? AND user_id = ?')
     .run(goalId, userId);
 }
+
+// ── Financial Profiles ─────────────────────────────────────────────────────
+
+export function upsertFinancialProfile(userId, data) {
+  const fields = [
+    'salary', 'payment_frequency', 'is_student', 'study_cost',
+    'transport_cost', 'food_cost', 'leisure_cost', 'services_cost',
+    'has_debt', 'debt_total', 'debt_monthly', 'onboarding_completed',
+  ];
+
+  // Build only the fields present in data
+  const updates = {};
+  for (const f of fields) {
+    if (data[f] !== undefined) updates[f] = data[f];
+  }
+
+  const existing = getDb()
+    .prepare('SELECT id FROM financial_profiles WHERE user_id = ?')
+    .get(userId);
+
+  if (existing) {
+    if (Object.keys(updates).length === 0) return getFinancialProfile(userId);
+    const setClauses = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+    getDb()
+      .prepare(`UPDATE financial_profiles SET ${setClauses}, updated_at = datetime('now') WHERE user_id = @user_id`)
+      .run({ ...updates, user_id: userId });
+  } else {
+    const cols = ['user_id', ...Object.keys(updates)];
+    const placeholders = cols.map(c => `@${c}`).join(', ');
+    getDb()
+      .prepare(`INSERT INTO financial_profiles (${cols.join(', ')}) VALUES (${placeholders})`)
+      .run({ user_id: userId, ...updates });
+  }
+
+  return getFinancialProfile(userId);
+}
+
+export function getFinancialProfile(userId) {
+  return getDb()
+    .prepare('SELECT * FROM financial_profiles WHERE user_id = ?')
+    .get(userId) || null;
+}
+
+export function markOnboardingCompleted(userId) {
+  return upsertFinancialProfile(userId, { onboarding_completed: 1 });
+}

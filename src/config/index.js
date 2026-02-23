@@ -17,6 +17,8 @@ try {
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || '';
+const AI_MODEL = process.env.AI_MODEL || 'gpt-3.5-turbo';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Resolve database path relative to project root
@@ -36,4 +38,4 @@ if (!BOT_TOKEN) {
   throw new Error('BOT_TOKEN is required. Set it in your .env file.');
 }
 
-export { BOT_TOKEN, OPENAI_API_KEY, DATABASE_PATH, NODE_ENV };
+export { BOT_TOKEN, OPENAI_API_KEY, OPENAI_BASE_URL, AI_MODEL, DATABASE_PATH, NODE_ENV };

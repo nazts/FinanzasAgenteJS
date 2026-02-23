@@ -32,8 +32,29 @@ export function runMigrations(db) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS financial_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER UNIQUE NOT NULL,
+      salary REAL,
+      payment_frequency TEXT,
+      is_student INTEGER DEFAULT 0,
+      study_cost REAL DEFAULT 0,
+      transport_cost REAL DEFAULT 0,
+      food_cost REAL DEFAULT 0,
+      leisure_cost REAL DEFAULT 0,
+      services_cost REAL DEFAULT 0,
+      has_debt INTEGER DEFAULT 0,
+      debt_total REAL DEFAULT 0,
+      debt_monthly REAL DEFAULT 0,
+      onboarding_completed INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
     CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id);
+    CREATE INDEX IF NOT EXISTS idx_financial_profiles_user_id ON financial_profiles(user_id);
   `);
 }

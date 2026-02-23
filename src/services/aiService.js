@@ -1,12 +1,14 @@
-import { OPENAI_API_KEY } from '../config/index.js';
+import { OPENAI_API_KEY, OPENAI_BASE_URL, AI_MODEL } from '../config/index.js';
 
 let openaiClient = null;
 
-async function getOrCreateClient() {
+export async function getOrCreateClient() {
   if (!OPENAI_API_KEY) return null;
   if (!openaiClient) {
     const { default: OpenAI } = await import('openai');
-    openaiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
+    const opts = { apiKey: OPENAI_API_KEY };
+    if (OPENAI_BASE_URL) opts.baseURL = OPENAI_BASE_URL;
+    openaiClient = new OpenAI(opts);
   }
   return openaiClient;
 }
@@ -43,7 +45,7 @@ Responde en JSON con este formato exacto:
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: AI_MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       max_tokens: 400,
@@ -96,3 +98,4 @@ export async function answerQuestion(question, financialData) {
     return '❌ Error al consultar la IA. Intenta de nuevo más tarde.';
   }
 }
+export { AI_MODEL };

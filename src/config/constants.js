@@ -33,8 +33,9 @@ export const MESSAGES = {
     `📊 /resumen — Resumen del mes actual\n` +
     `📈 /reporte — Gráficas visuales\n` +
     `🧠 /perfil — Análisis de perfil financiero con IA\n` +
-    `🎯 /metas — Gestionar metas de ahorro\n\n` +
-    `¡Comienza registrando tu primer ingreso! 🚀`,
+    `🎯 /metas — Gestionar metas de ahorro\n` +
+    `📋 /onboarding — Configurar perfil financiero\n\n` +
+    `¡Comienza con /onboarding para un análisis personalizado! 🚀`,
 
   RATE_LIMITED: '⏳ Demasiadas solicitudes. Espera un momento antes de continuar.',
   ERROR_GENERAL: '❌ Ocurrió un error inesperado. Intenta de nuevo.',
@@ -43,6 +44,8 @@ export const MESSAGES = {
   INCOME_SAVED: '✅ Ingreso registrado correctamente.',
   EXPENSE_SAVED: '✅ Gasto registrado correctamente.',
 };
+
+export const PAYMENT_FREQUENCIES = ['semanal', 'quincenal', 'mensual'];
 
 export const CHART_COLORS = {
   needs: 'rgba(255, 99, 132, 0.8)',

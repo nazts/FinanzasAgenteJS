@@ -5,12 +5,14 @@ import { CATEGORIES } from '../config/constants.js';
  * @param {string} text
  * @returns {{ valid: boolean, amount?: number, error?: string }}
  */
-export function validateAmount(text) {
+export function validateAmount(text, { allowZero = false } = {}) {
   if (!text) return { valid: false, error: 'No se proporcionó monto.' };
   const cleaned = text.replace(/[$,]/g, '').trim();
   const amount = parseFloat(cleaned);
   if (isNaN(amount)) return { valid: false, error: 'El monto no es un número válido.' };
-  if (amount <= 0) return { valid: false, error: 'El monto debe ser mayor a cero.' };
+  if (allowZero ? amount < 0 : amount <= 0) {
+    return { valid: false, error: allowZero ? 'El monto no puede ser negativo.' : 'El monto debe ser mayor a cero.' };
+  }
   if (amount > 1_000_000_000) return { valid: false, error: 'El monto es demasiado grande.' };
   return { valid: true, amount };
 }
