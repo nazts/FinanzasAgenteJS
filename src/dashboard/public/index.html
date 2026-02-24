@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinanzasBot — Analytics Dashboard</title>
+  <meta name="description"
+    content="Panel de analíticas SaaS para monitorear interacciones, usuarios y finanzas del bot FinanzasBot" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <!-- ── Login Overlay ───────────────────────────────────────────────────── -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">🔐</div>
+      <h2>FinanzasBot Admin</h2>
+      <p>Ingresa la clave de administrador</p>
+      <form id="loginForm">
+        <input type="password" id="adminKeyInput" placeholder="Admin Key" autocomplete="off" required />
+        <button type="submit" id="loginBtn">Acceder</button>
+        <p id="loginError" class="login-error"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Main App (hidden until auth) ────────────────────────────────────── -->
+  <div id="appContainer" class="app-container hidden">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-icon">💰</span>
+          <h1>FinanzasBot <span class="badge">Analytics</span></h1>
+        </div>
+        <p class="subtitle">SaaS Analytics Dashboard — Monitoreo de producto</p>
+      </div>
+      <div class="header-right">
+        <div class="status-indicator">
+          <span class="pulse"></span>
+          <span>En vivo</span>
+        </div>
+        <span id="lastUpdated" class="last-updated"></span>
+        <button id="logoutBtn" class="logout-btn" title="Cerrar sesión">🚪</button>
+      </div>
+    </header>
+
+    <!-- ── Nav Tabs ────────────────────────────────────────────────────── -->
+    <nav class="nav-tabs" id="navTabs">
+      <button class="nav-tab active" data-tab="overview">📊 Overview</button>
+      <button class="nav-tab" data-tab="users">👥 Usuarios</button>
+      <button class="nav-tab" data-tab="interactions">🤖 Interacciones</button>
+      <button class="nav-tab" data-tab="finance">💰 Finanzas</button>
+      <button class="nav-tab" data-tab="funnel">🔄 Embudo</button>
+    </nav>
+
+    <!-- ═══ TAB: Overview ════════════════════════════════════════════════ -->
+    <section id="tab-overview" class="tab-content active">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid kpi-grid-8">
+        <div class="kpi-card kpi-c1">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-totalUsers">—</span><span
+              class="kpi-label">Registrados</span></div>
+        </div>
+        <div class="kpi-card kpi-c2">
+          <div class="kpi-icon">⚡</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-active7d">—</span><span class="kpi-label">Activos
+              7d</span></div>
+        </div>
+        <div class="kpi-card kpi-c3">
+          <div class="kpi-icon">📆</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-active30d">—</span><span class="kpi-label">Activos
+              30d</span></div>
+        </div>
+        <div class="kpi-card kpi-c4">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-onboardedUsers">—</span><span
+              class="kpi-label">Onboarded</span></div>
+        </div>
+        <div class="kpi-card kpi-c5">
+          <div class="kpi-icon">🤖</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-totalCommands">—</span><span
+              class="kpi-label">Comandos</span></div>
+        </div>
+        <div class="kpi-card kpi-c6">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-totalTransactions">—</span><span
+              class="kpi-label">Transacciones</span></div>
+        </div>
+        <div class="kpi-card kpi-c7">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-totalIncome">—</span><span
+              class="kpi-label">Ingresos</span></div>
+        </div>
+        <div class="kpi-card kpi-c8">
+          <div class="kpi-icon">📉</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-totalExpenses">—</span><span
+              class="kpi-label">Gastos</span></div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <h2 class="chart-title">📅 Crecimiento de Usuarios (30 días)</h2>
+          <div class="chart-container"><canvas id="chartUserGrowth"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">🤖 Uso por Comando</h2>
+          <div class="chart-container"><canvas id="chartCommandDist"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: Users ═══════════════════════════════════════════════════ -->
+    <section id="tab-users" class="tab-content">
+      <div class="section-full">
+        <div class="chart-card">
+          <h2 class="chart-title">👥 Todos los Usuarios — Ordenados por Actividad</h2>
+          <div class="table-wrapper">
+            <table class="data-table" id="usersTable">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Telegram ID</th>
+                  <th>Comandos</th>
+                  <th>Transacciones</th>
+                  <th>Ingresos</th>
+                  <th>Gastos</th>
+                  <th>Salario</th>
+                  <th>Onboarding</th>
+                  <th>Última Actividad</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="9" class="no-data">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: Interactions ════════════════════════════════════════════ -->
+    <section id="tab-interactions" class="tab-content">
+
+      <div class="kpi-grid kpi-grid-4">
+        <div class="kpi-card kpi-c5">
+          <div class="kpi-icon">🤖</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-intTotalCmds">—</span><span class="kpi-label">Total
+              Comandos</span></div>
+        </div>
+        <div class="kpi-card kpi-c2">
+          <div class="kpi-icon">⭐</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-intMostUsed">—</span><span class="kpi-label">Más
+              Usado</span></div>
+        </div>
+        <div class="kpi-card kpi-c3">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-intAvgPerUser">—</span><span
+              class="kpi-label">Promedio/Usuario</span></div>
+        </div>
+        <div class="kpi-card kpi-c4">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-intTop10Count">—</span><span
+              class="kpi-label">Usuarios Activos</span></div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <h2 class="chart-title">📈 Comandos por Día (30 días)</h2>
+          <div class="chart-container"><canvas id="chartCmdsPerDay"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">📊 Distribución de Comandos</h2>
+          <div class="chart-container chart-container-donut"><canvas id="chartCmdDonut"></canvas></div>
+        </div>
+      </div>
+
+      <div class="charts-row charts-row-equal">
+        <div class="chart-card">
+          <h2 class="chart-title">🏆 Top 10 Usuarios por Comandos</h2>
+          <div class="table-wrapper">
+            <table class="data-table" id="intTop10Table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Usuario</th>
+                  <th>Comandos</th>
+                </tr>
+              </thead>
+              <tbody id="intTop10Body">
+                <tr>
+                  <td colspan="3" class="no-data">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">🕑 Actividad Reciente (Comandos)</h2>
+          <div class="table-wrapper table-scroll">
+            <table class="data-table" id="intRecentTable">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Usuario</th>
+                  <th>Comando</th>
+                </tr>
+              </thead>
+              <tbody id="intRecentBody">
+                <tr>
+                  <td colspan="3" class="no-data">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: Finance ═════════════════════════════════════════════════ -->
+    <section id="tab-finance" class="tab-content">
+
+      <div class="kpi-grid kpi-grid-6">
+        <div class="kpi-card kpi-c7">
+          <div class="kpi-icon">💵</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-finAvgSalary">—</span><span class="kpi-label">Salario
+              Promedio</span></div>
+        </div>
+        <div class="kpi-card kpi-c2">
+          <div class="kpi-icon">💎</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-finAvgSavings">—</span><span class="kpi-label">Ahorro
+              Promedio %</span></div>
+        </div>
+        <div class="kpi-card kpi-c3">
+          <div class="kpi-icon">📐</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-finDeviation">—</span><span
+              class="kpi-label">Desviación 50/30/20</span></div>
+        </div>
+        <div class="kpi-card kpi-c8">
+          <div class="kpi-icon">⚠️</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-finLowSavers">—</span><span class="kpi-label">% Ahorro
+              <10%< /span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-c1">
+          <div class="kpi-icon">🏠</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-finAvgLeisure">—</span><span class="kpi-label">Gasto
+              Ocio Prom.</span></div>
+        </div>
+        <div class="kpi-card kpi-c6">
+          <div class="kpi-icon">🚨</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-finOverIndebted">—</span><span class="kpi-label">%
+              Sobreendeudados</span></div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <h2 class="chart-title">📈 Evolución Mensual — Ingresos vs Gastos (6 meses)</h2>
+          <div class="chart-container"><canvas id="chartEvolution"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">🎯 Distribución Real 50/30/20</h2>
+          <div class="chart-container chart-container-donut"><canvas id="chartCategoryDonut"></canvas></div>
+        </div>
+      </div>
+
+      <div class="charts-row charts-row-equal">
+        <div class="chart-card">
+          <h2 class="chart-title">⚠️ Usuarios con Ahorro Bajo (&lt;10%)</h2>
+          <div class="table-wrapper">
+            <table class="data-table" id="lowSaversTable">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Salario</th>
+                  <th>Ahorro %</th>
+                </tr>
+              </thead>
+              <tbody id="lowSaversBody">
+                <tr>
+                  <td colspan="3" class="no-data">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">🚨 Usuarios Sobreendeudados (&gt;40%)</h2>
+          <div class="table-wrapper">
+            <table class="data-table" id="indebtedTable">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Salario</th>
+                  <th>Deuda/Mes</th>
+                  <th>% Deuda</th>
+                </tr>
+              </thead>
+              <tbody id="indebtedBody">
+                <tr>
+                  <td colspan="4" class="no-data">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: Funnel ══════════════════════════════════════════════════ -->
+    <section id="tab-funnel" class="tab-content">
+
+      <div class="kpi-grid kpi-grid-4">
+        <div class="kpi-card kpi-c2">
+          <div class="kpi-icon">🔁</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-retention7d">—</span><span class="kpi-label">Retención
+              7d</span></div>
+        </div>
+        <div class="kpi-card kpi-c3">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-retentionRate">—</span><span class="kpi-label">Tasa
+              Retención</span></div>
+        </div>
+        <div class="kpi-card kpi-c8">
+          <div class="kpi-icon">🚪</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-abandonedOB">—</span><span
+              class="kpi-label">Abandonaron OB</span></div>
+        </div>
+        <div class="kpi-card kpi-c5">
+          <div class="kpi-icon">📋</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-startedOB">—</span><span class="kpi-label">Iniciaron
+              OB</span></div>
+        </div>
+      </div>
+
+      <div class="section-full">
+        <div class="chart-card">
+          <h2 class="chart-title">🔄 Embudo de Conversión</h2>
+          <div id="funnelContainer" class="funnel-container">
+            <p class="no-data">Cargando embudo...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-full">
+        <div class="chart-card">
+          <h2 class="chart-title">📊 Embudo Visual</h2>
+          <div class="chart-container" style="height:320px"><canvas id="chartFunnel"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>FinanzasBot Analytics Dashboard &copy; 2026 — Datos en tiempo real &middot; Auto-refresh cada 30s</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

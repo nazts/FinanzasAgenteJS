@@ -6,7 +6,7 @@ export async function getOrCreateClient() {
   if (!OPENAI_API_KEY) return null;
   if (!openaiClient) {
     const { default: OpenAI } = await import('openai');
-    const opts = { apiKey: OPENAI_API_KEY };
+    const opts = { apiKey: OPENAI_API_KEY, timeout: 30000 };
     if (OPENAI_BASE_URL) opts.baseURL = OPENAI_BASE_URL;
     openaiClient = new OpenAI(opts);
   }

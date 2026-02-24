@@ -3,6 +3,7 @@ import { Telegraf, Scenes, session } from 'telegraf';
 import { BOT_TOKEN } from './config/index.js';
 import { getDb, closeDb } from './database/index.js';
 import { checkLimit } from './utils/rateLimiter.js';
+import { activityLoggerMiddleware } from './utils/activityLogger.js';
 import { MESSAGES } from './config/constants.js';
 
 import { startHandler } from './handlers/startHandler.js';
@@ -18,7 +19,7 @@ import { onboardingScene, onboardingCommand } from './handlers/onboardingHandler
 // Initialise DB (runs migrations)
 getDb();
 
-const bot = new Telegraf(BOT_TOKEN);
+const bot = new Telegraf(BOT_TOKEN, { handlerTimeout: 180_000 });
 
 // ── Session & Scenes middleware ──────────────────────────────────────────────
 const stage = new Scenes.Stage([onboardingScene]);
@@ -33,6 +34,9 @@ bot.use(async (ctx, next) => {
   }
   return next();
 });
+
+// ── Activity logger middleware ───────────────────────────────────────────────
+bot.use(activityLoggerMiddleware);
 
 // ── Command handlers ─────────────────────────────────────────────────────────
 bot.start(startHandler);
@@ -63,7 +67,15 @@ bot.on('text', async (ctx, next) => {
 });
 
 // ── Global error handler ──────────────────────────────────────────────────────
-bot.catch(errorHandler);
+bot.catch((err) => {
+  // Suppress noisy timeout / stale-query errors — they're benign after restart
+  const msg = err?.message || '';
+  if (msg.includes('timed out') || msg.includes('query is too old')) {
+    console.warn('[Bot] Suppressed:', msg.split('\n')[0]);
+    return;
+  }
+  errorHandler(err);
+});
 
 // ── Launch ────────────────────────────────────────────────────────────────────
 await bot.launch({ dropPendingUpdates: true });
