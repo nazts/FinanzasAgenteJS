@@ -128,7 +128,33 @@ El bot calcula automáticamente los montos ideales y te alerta cuando te desvía
 
 ---
 
-## 🗺️ Roadmap y Escalabilidad
+## ☁️ Despliegue en Render
+
+El bot se despliega en [Render](https://render.com) como un **Web Service** (no como Background Worker), ya que necesita un servidor HTTP activo escuchando en un puerto.
+
+### Variables de entorno requeridas en Render
+
+| Variable | Descripción |
+|---|---|
+| `BOT_TOKEN` | Token del bot de Telegram (BotFather) |
+| `RENDER_EXTERNAL_URL` | URL pública de la app en Render (e.g. `https://mi-app.onrender.com`) |
+| `PORT` | Puerto en que escucha el servidor (Render lo asigna automáticamente) |
+
+### Modo webhook
+
+En producción el bot utiliza **modo webhook** en lugar de long polling:
+
+1. Express levanta un servidor HTTP en el puerto indicado por `PORT`.
+2. Se registra el webhook en Telegram apuntando a `RENDER_EXTERNAL_URL/bot<BOT_TOKEN>`.
+3. Telegram envía las actualizaciones al endpoint del webhook en lugar de que el bot las consulte.
+
+### Health-check
+
+El endpoint `GET /` responde con `🤖 Bot activo`. Render usa esta ruta para verificar que el servicio está en funcionamiento.
+
+---
+
+
 
 ### Próximas funciones
 - [ ] Exportar a CSV/Excel

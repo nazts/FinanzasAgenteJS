@@ -1,6 +1,7 @@
 import './config/index.js'; // validates env vars first
+import express from 'express';
 import { Telegraf, Scenes, session } from 'telegraf';
-import { BOT_TOKEN } from './config/index.js';
+import { BOT_TOKEN, RENDER_EXTERNAL_URL, PORT } from './config/index.js';
 import { getDb, closeDb } from './database/index.js';
 import { checkLimit } from './utils/rateLimiter.js';
 import { activityLoggerMiddleware } from './utils/activityLogger.js';
@@ -77,18 +78,51 @@ bot.catch((err) => {
   errorHandler(err);
 });
 
-// ── Launch ────────────────────────────────────────────────────────────────────
-await bot.launch({ dropPendingUpdates: true });
-console.log('🤖 Bot iniciado correctamente.');
+// ── Express server + Webhook ──────────────────────────────────────────────────
+const app = express();
+
+// Health-check route (Render needs this to know the service is alive)
+app.get('/', (_req, res) => {
+  res.send('🤖 Bot activo');
+});
+
+// Webhook path uses the token to prevent unauthorized requests
+const webhookPath = `/bot${BOT_TOKEN}`;
+
+// Mount Telegraf webhook handler
+app.use(bot.webhookCallback(webhookPath));
+
+// Start Express server
+app.listen(PORT, async () => {
+  console.log(`🚀 Servidor Express escuchando en puerto ${PORT}`);
+
+  // Build full webhook URL
+  const webhookUrl = `${RENDER_EXTERNAL_URL}${webhookPath}`;
+
+  try {
+    // Set the webhook on Telegram's servers
+    await bot.telegram.setWebhook(webhookUrl, { drop_pending_updates: true });
+    console.log(`✅ Webhook configurado: ${webhookUrl}`);
+  } catch (err) {
+    console.error('❌ Error configurando webhook:', err.message);
+    process.exit(1);
+  }
+
+  console.log('🤖 Bot iniciado correctamente en modo webhook.');
+});
 
 // Graceful shutdown
-process.once('SIGINT', () => {
-  bot.stop('SIGINT');
-  closeDb();
-  console.log('Bot detenido (SIGINT).');
-});
-process.once('SIGTERM', () => {
-  bot.stop('SIGTERM');
-  closeDb();
-  console.log('Bot detenido (SIGTERM).');
-});
+const gracefulShutdown = (signal) => {
+  console.log(`Recibida señal ${signal}. Cerrando...`);
+  bot.telegram.deleteWebhook({ drop_pending_updates: true })
+    .then(() => console.log('Webhook eliminado.'))
+    .catch((err) => console.error('Error eliminando webhook:', err.message))
+    .finally(() => {
+      closeDb();
+      console.log(`Bot detenido (${signal}).`);
+      process.exit(0);
+    });
+};
+
+process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
