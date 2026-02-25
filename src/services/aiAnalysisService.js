@@ -26,8 +26,8 @@ export async function generateAIAnalysis(analysis, alerts) {
                 { role: 'system', content: SYSTEM_PROMPT },
                 { role: 'user', content: prompt },
             ],
-            temperature: 0.6,
-            max_tokens: 800,
+            temperature: 0.5,
+            max_tokens: 300,
         });
 
         return response.choices[0]?.message?.content || 'No se pudo generar el análisis.';
@@ -39,53 +39,23 @@ export async function generateAIAnalysis(analysis, alerts) {
 
 // ── Internal ─────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Eres un asesor financiero profesional y realista. Tu trabajo es dar análisis técnicos y prácticos basados en datos concretos.
-
-REGLAS ESTRICTAS:
-- NO hagas promesas de riqueza ni uses frases como "hazte rico", "libertad financiera fácil", "dinero trabajando para ti".
-- NO recomiendes criptomonedas especulativas ni inversiones de alto riesgo sin contexto.
-- NO uses lenguaje motivacional vacío.
-- SÍ adapta tus recomendaciones al nivel de ingreso real del usuario.
-- SÍ sé directo y honesto si la situación es difícil.
-- SÍ sugiere pasos concretos y alcanzables.
-
-Si el ingreso es bajo, NO asumas que el usuario puede invertir grandes cantidades. Enfócate en:
-- Proteger lo que tiene
-- Reducir gastos innecesarios
-- Construir un fondo de emergencia pequeño pero real
-- Microemprendimiento viable si aplica
-
-Responde en español, en texto plano (sin markdown), con párrafos cortos y claros.`;
+const SYSTEM_PROMPT = `Eres un asesor financiero directo y conciso. Máximo 100 palabras. Sin markdown. Sin motivación vacía. Solo datos y acciones concretas. Responde en español.`;
 
 function buildPrompt(analysis, alerts) {
-    return `Analiza la siguiente situación financiera y proporciona:
+    let prompt = `Haz un diagnóstico financiero BREVE (máximo 3-4 oraciones):
+1) Estado actual en una oración.
+2) Principal problema o fortaleza detectada.
+3) Una acción concreta para esta semana.
 
-1) Evaluación objetiva de la situación (2-3 oraciones).
-2) Si puede aumentar su ahorro y cuánto sería razonable (sé específico con números).
-3) Recomendaciones realistas (máximo 5), priorizadas así:
-   - Fondo de emergencia (3–6 meses de gastos)
-   - Reducción específica de gastos (indica cuáles y cuánto)
-   - Renta fija o CETES si aplica
-   - Fondos indexados si el ahorro lo permite
-   - Certificados financieros
-   - Microemprendimiento viable según el ingreso
-4) Un próximo paso concreto que pueda hacer esta semana.
+DATOS:
+- Ingreso: ${formatCurrency(analysis.monthlyIncome)}/mes
+- Gastos: ${formatCurrency(analysis.totalExpenses)}
+- Ahorro: ${formatCurrency(analysis.savingsCapacity)} (${formatPercentage(analysis.savingsPercent)})
+- Deuda mensual: ${formatCurrency(analysis.debtMonthly)}`;
 
-DATOS DEL USUARIO:
-- Ingreso mensual: ${formatCurrency(analysis.monthlyIncome)}
-- Gastos fijos (necesidades): ${formatCurrency(analysis.fixedExpenses)}
-- Gastos variables (ocio): ${formatCurrency(analysis.variableExpenses)}
-- Total gastos: ${formatCurrency(analysis.totalExpenses)}
-- Capacidad de ahorro: ${formatCurrency(analysis.savingsCapacity)} (${formatPercentage(analysis.savingsPercent)})
-- Es estudiante: ${analysis.isStudent ? 'Sí' : 'No'}
-- Deuda total: ${formatCurrency(analysis.debtTotal)}
-- Cuota mensual de deuda: ${formatCurrency(analysis.debtMonthly)}
-- Ratio deuda/ingreso: ${formatPercentage(analysis.debtIncomeRatio)}
+    if (alerts.length > 0) {
+        prompt += `\nAlertas: ${alerts.map(a => a.replace(/\*/g, '').replace(/[🚨⚠️🔴❌]/g, '').trim()).join('; ')}`;
+    }
 
-DISTRIBUCIÓN REAL vs IDEAL (50/30/20):
-- Necesidades: ${formatPercentage(analysis.monthlyIncome > 0 ? analysis.comparison.needs.real / analysis.monthlyIncome : 0)} real vs 50% ideal
-- Gustos: ${formatPercentage(analysis.monthlyIncome > 0 ? analysis.comparison.wants.real / analysis.monthlyIncome : 0)} real vs 30% ideal
-- Ahorro: ${formatPercentage(analysis.savingsPercent)} real vs 20% ideal
-
-${alerts.length > 0 ? 'ALERTAS DETECTADAS:\n' + alerts.map(a => '- ' + a.replace(/\*/g, '')).join('\n') : 'No se detectaron alertas críticas.'}`;
+    return prompt;
 }

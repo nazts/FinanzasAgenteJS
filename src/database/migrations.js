@@ -69,4 +69,18 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_activity_log_timestamp ON user_activity_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_activity_log_command ON user_activity_log(command);
   `);
+
+  // ── Behavioral intelligence columns (safe migration) ──────────────────
+  const newCols = [
+    [`category_trends`, `TEXT DEFAULT '{}'`],
+    [`monthly_deviation_score`, `REAL DEFAULT 0`],
+    [`recurring_spike_pattern`, `TEXT DEFAULT '{}'`],
+    [`behavioral_risk_level`, `TEXT DEFAULT 'normal'`],
+    [`current_savings`, `REAL DEFAULT 0`],
+  ];
+  for (const [col, def] of newCols) {
+    try {
+      db.exec(`ALTER TABLE financial_profiles ADD COLUMN ${col} ${def}`);
+    } catch { /* column already exists – ignore */ }
+  }
 }

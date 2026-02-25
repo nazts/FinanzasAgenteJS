@@ -259,11 +259,18 @@ export const onboardingScene = new Scenes.WizardScene(
             return ctx.wizard.next(); // → step 10
         }
 
-        // No debt → finish
+        // No debt → ask about savings
         ctx.wizard.state.debt_total = 0;
         ctx.wizard.state.debt_monthly = 0;
         savePartialProfile(user.id, { debt_total: 0, debt_monthly: 0 });
-        return finishOnboarding(ctx);
+        await ctx.reply(
+            '💰 *¿Tienes algo ahorrado actualmente?*',
+            Markup.inlineKeyboard([
+                [Markup.button.callback('Sí', 'savings:yes')],
+                [Markup.button.callback('No', 'savings:no')],
+            ]),
+        );
+        return ctx.wizard.selectStep(12);
     },
 
     // ── STEP 10: Monto total deuda → cuota mensual ────────────────────────
@@ -286,7 +293,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 11: Cuota mensual → finalizar ─────────────────────────────────
+    // ── STEP 11: Cuota mensual → preguntar ahorro ──────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -298,6 +305,39 @@ export const onboardingScene = new Scenes.WizardScene(
         ctx.wizard.state.debt_monthly = amount;
         const user = getOrCreateUser(ctx);
         savePartialProfile(user.id, { debt_monthly: amount });
+
+        await ctx.reply(
+            '💰 *¿Tienes algo ahorrado actualmente?*',
+            Markup.inlineKeyboard([
+                [Markup.button.callback('Sí', 'savings:yes')],
+                [Markup.button.callback('No', 'savings:no')],
+            ]),
+        );
+        return ctx.wizard.next();
+    },
+
+    // ── STEP 12: Ahorro? → monto ahorrado o finalizar ─────────────────────
+    async (ctx) => {
+        // This step is a placeholder for the savings callback handler
+        if (checkCancel(ctx)) return ctx.scene.leave();
+        if (!ctx.callbackQuery?.data?.startsWith('savings:')) {
+            await ctx.reply('Por favor, selecciona Sí o No ☝️');
+            return;
+        }
+    },
+
+    // ── STEP 13: Monto ahorrado → finalizar ───────────────────────────────
+    async (ctx) => {
+        if (checkCancel(ctx)) return ctx.scene.leave();
+        const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
+        if (!valid) {
+            await ctx.reply(`❌ ${error}\n¿Cuánto tienes ahorrado?`);
+            return;
+        }
+
+        ctx.wizard.state.current_savings = amount;
+        const user = getOrCreateUser(ctx);
+        savePartialProfile(user.id, { current_savings: amount });
 
         return finishOnboarding(ctx);
     },
@@ -312,10 +352,12 @@ onboardingScene.action(/^freq:/, async (ctx) => {
     const user = getOrCreateUser(ctx);
     savePartialProfile(user.id, { payment_frequency: frequency });
 
-    // Confirm monthly income
+    // Show per-period amount based on monthly income
+    const monthly = ctx.wizard.state.salary;
     const freqLabel = { semanal: 'semanal', quincenal: 'quincenal', mensual: 'mensual' }[frequency];
+    const perPeriod = { semanal: monthly / 4.33, quincenal: monthly / 2, mensual: monthly }[frequency];
     await ctx.reply(
-        `✅ Frecuencia de cobro: *${freqLabel}*\nTu ingreso mensual registrado: *${formatCurrency(ctx.wizard.state.salary)}*`,
+        `✅ Cobras *${formatCurrency(perPeriod)}* ${freqLabel} (${formatCurrency(monthly)}/mes)`,
         { parse_mode: 'Markdown' },
     );
 
@@ -329,7 +371,7 @@ onboardingScene.action(/^freq:/, async (ctx) => {
             ]),
         },
     );
-    return ctx.wizard.selectStep(3); // advance to step 3 (waiting for study callback)
+    return ctx.wizard.selectStep(3);
 });
 
 onboardingScene.action(/^study:/, async (ctx) => {
@@ -371,14 +413,24 @@ onboardingScene.action(/^debt:/, async (ctx) => {
             '💳 *¿Cuál es el monto total de tu deuda?*\n_(Escribe el monto)_',
             { parse_mode: 'Markdown' },
         );
-        return ctx.wizard.selectStep(10); // → step 10 (debt total text input)
+        return ctx.wizard.selectStep(10);
     }
 
-    // No debt → finish
+    // No debt → ask about savings
     ctx.wizard.state.debt_total = 0;
     ctx.wizard.state.debt_monthly = 0;
     savePartialProfile(user.id, { debt_total: 0, debt_monthly: 0 });
-    return finishOnboarding(ctx);
+    await ctx.reply(
+        '💰 *¿Tienes algo ahorrado actualmente?*',
+        {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('Sí', 'savings:yes')],
+                [Markup.button.callback('No', 'savings:no')],
+            ]),
+        },
+    );
+    return ctx.wizard.selectStep(12);
 });
 
 // "No gasto en eso" button — sets the expense to 0 and advances to the next question
@@ -424,6 +476,26 @@ onboardingScene.action(/^skip:/, async (ctx) => {
     );
     return ctx.wizard.selectStep(mapping.step);
 });
+
+onboardingScene.action(/^savings:/, async (ctx) => {
+    const hasSavings = ctx.callbackQuery.data === 'savings:yes';
+    await safeCbAnswer(ctx);
+
+    if (hasSavings) {
+        await ctx.reply(
+            '🏦 *¿Cuánto tienes ahorrado?*\n_(Escribe el monto)_',
+            { parse_mode: 'Markdown' },
+        );
+        return ctx.wizard.selectStep(13); // → step 13 (savings amount text input)
+    }
+
+    // No savings → finish
+    ctx.wizard.state.current_savings = 0;
+    const user = getOrCreateUser(ctx);
+    savePartialProfile(user.id, { current_savings: 0 });
+    return finishOnboarding(ctx);
+});
+
 onboardingScene.command('cancelar', async (ctx) => {
     await ctx.reply('❌ Onboarding cancelado. Puedes reiniciarlo con /onboarding cuando quieras.');
     return ctx.scene.leave();
@@ -483,60 +555,46 @@ async function finishOnboarding(ctx) {
         const user = getOrCreateUser(ctx);
         completeOnboarding(user.id);
 
-        await ctx.reply('⏳ Analizando tu perfil financiero... Un momento.');
-
         const profile = getFinancialProfile(user.id);
         const analysis = analyzeFinancialStructure(profile);
         const alerts = detectAlerts(analysis);
 
-        // 1) Numeric summary
+        // Concise summary
+        const savingsEmoji = analysis.savingsPercent >= 0.2 ? '✅' : analysis.savingsPercent >= 0.1 ? '⚠️' : '🔴';
         const summaryText =
-            `📊 *RESUMEN FINANCIERO*\n\n` +
-            `💰 Ingreso mensual: *${formatCurrency(analysis.monthlyIncome)}*\n` +
-            `🏠 Gastos fijos: *${formatCurrency(analysis.fixedExpenses)}*\n` +
-            `🎮 Gastos variables: *${formatCurrency(analysis.variableExpenses)}*\n` +
-            `📦 Total gastos: *${formatCurrency(analysis.totalExpenses)}*\n` +
-            `💎 Capacidad de ahorro: *${formatCurrency(analysis.savingsCapacity)}* (${formatPercentage(analysis.savingsPercent)})\n` +
-            `💳 Ratio deuda/ingreso: *${formatPercentage(analysis.debtIncomeRatio)}*`;
+            `📊 *Tu Perfil Financiero*\n\n` +
+            `💰 Ingreso: *${formatCurrency(analysis.monthlyIncome)}*/mes\n` +
+            `📦 Gastos: *${formatCurrency(analysis.totalExpenses)}*\n` +
+            `${savingsEmoji} Ahorro: *${formatCurrency(analysis.savingsCapacity)}* (${formatPercentage(analysis.savingsPercent)})` +
+            (analysis.debtMonthly > 0 ? `\n💳 Deuda mensual: *${formatCurrency(analysis.debtMonthly)}*` : '') +
+            (profile.current_savings > 0 ? `\n🏦 Ahorrado: *${formatCurrency(profile.current_savings)}*` : '');
 
-        // 2) 50/30/20 comparison
-        const compText =
-            `\n\n📐 *COMPARACIÓN 50/30/20*\n\n` +
-            `🏠 Necesidades: ${formatPercentage(analysis.monthlyIncome > 0 ? analysis.comparison.needs.real / analysis.monthlyIncome : 0)} real → 50% ideal ` +
-            `(${analysis.comparison.needs.diff >= 0 ? '+' : ''}${formatCurrency(analysis.comparison.needs.diff)})\n` +
-            `🎉 Gustos: ${formatPercentage(analysis.monthlyIncome > 0 ? analysis.comparison.wants.real / analysis.monthlyIncome : 0)} real → 30% ideal ` +
-            `(${analysis.comparison.wants.diff >= 0 ? '+' : ''}${formatCurrency(analysis.comparison.wants.diff)})\n` +
-            `💎 Ahorro: ${formatPercentage(analysis.savingsPercent)} real → 20% ideal ` +
-            `(${analysis.comparison.savings.diff >= 0 ? '+' : ''}${formatCurrency(analysis.comparison.savings.diff)})`;
+        // Only show critical alerts (max 2)
+        const topAlerts = alerts.slice(0, 2);
+        const alertsText = topAlerts.length > 0
+            ? `\n\n${topAlerts.join('\n')}`
+            : '';
 
-        // 3) Alerts
-        const alertsText = alerts.length > 0
-            ? `\n\n🚨 *ALERTAS*\n\n${alerts.join('\n')}`
-            : '\n\n✅ No se detectaron alertas críticas.';
+        await ctx.reply(summaryText + alertsText, { parse_mode: 'Markdown' });
 
-        await ctx.reply(summaryText + compText + alertsText, { parse_mode: 'Markdown' });
-
-        // 4) AI analysis
+        // Concise AI analysis
         try {
             const aiText = await generateAIAnalysis(analysis, alerts);
             await ctx.reply(
-                `🤖 *ANÁLISIS IA*\n\n${aiText}`,
+                `🤖 ${aiText}`,
                 { parse_mode: 'Markdown' },
             );
         } catch (aiErr) {
             console.error('[onboarding] AI analysis failed:', aiErr.message);
-            await ctx.reply('🤖 No se pudo generar el análisis con IA en este momento. Puedes consultarlo después con /perfil.');
         }
 
         await ctx.reply(
-            '✅ *Onboarding completado.* Tu perfil financiero ha sido guardado.\n\n' +
-            'Usa /perfil para consultar tu análisis en cualquier momento.\n' +
-            'Usa /onboarding para actualizar tus datos.',
+            '✅ Perfil guardado. Usa /preguntar para consultas con IA o /resumen para ver tu mes.',
             { parse_mode: 'Markdown' },
         );
     } catch (err) {
         console.error('[onboarding] finishOnboarding error:', err.message);
-        await ctx.reply('❌ Hubo un error al procesar tu perfil. Intenta de nuevo con /onboarding.');
+        await ctx.reply('❌ Hubo un error. Intenta de nuevo con /onboarding.');
     }
 
     return ctx.scene.leave();

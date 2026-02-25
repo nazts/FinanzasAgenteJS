@@ -16,6 +16,7 @@ import { profileHandler } from './handlers/profileHandler.js';
 import { goalsHandler, goalsCallbackHandler, goalsTextHandler } from './handlers/goalsHandler.js';
 import { errorHandler } from './handlers/errorHandler.js';
 import { onboardingScene, onboardingCommand } from './handlers/onboardingHandler.js';
+import { askHandler, askCallbackHandler } from './handlers/askHandler.js';
 
 // Initialise DB (runs migrations)
 getDb();
@@ -48,10 +49,12 @@ bot.command('reporte', reportHandler);
 bot.command('perfil', profileHandler);
 bot.command('metas', goalsHandler);
 bot.command('onboarding', onboardingCommand);
+bot.command('preguntar', askHandler);
 
 // ── Callback query handlers ───────────────────────────────────────────────────
 bot.action(/^cat:/, expenseCategoryHandler);
 bot.action(/^goal:/, goalsCallbackHandler);
+bot.action(/^ask:/, askCallbackHandler);
 bot.action('redo_onboarding', async (ctx) => {
   try { await ctx.answerCbQuery(); } catch { /* stale */ }
   return ctx.scene.enter('onboarding-wizard');
@@ -78,51 +81,66 @@ bot.catch((err) => {
   errorHandler(err);
 });
 
-// ── Express server + Webhook ──────────────────────────────────────────────────
-const app = express();
+// ── Startup: auto-detect local (polling) vs Render (webhook) ─────────────────
 
-// Health-check route (Render needs this to know the service is alive)
-app.get('/', (_req, res) => {
-  res.send('🤖 Bot activo');
-});
+if (RENDER_EXTERNAL_URL) {
+  // ── PRODUCTION: Express server + Webhook (Render) ──────────────────────────
+  const app = express();
 
-// Webhook path uses the token to prevent unauthorized requests
-const webhookPath = `/bot${BOT_TOKEN}`;
+  app.get('/', (_req, res) => {
+    res.send('🤖 Bot activo');
+  });
 
-// Mount Telegraf webhook handler
-app.use(bot.webhookCallback(webhookPath));
+  const webhookPath = `/bot${BOT_TOKEN}`;
+  app.use(bot.webhookCallback(webhookPath));
 
-// Start Express server
-app.listen(PORT, async () => {
-  console.log(`🚀 Servidor Express escuchando en puerto ${PORT}`);
+  app.listen(PORT, async () => {
+    console.log(`🚀 Servidor Express escuchando en puerto ${PORT}`);
 
-  // Build full webhook URL
-  const webhookUrl = `${RENDER_EXTERNAL_URL}${webhookPath}`;
+    const webhookUrl = `${RENDER_EXTERNAL_URL}${webhookPath}`;
 
-  try {
-    // Set the webhook on Telegram's servers
-    await bot.telegram.setWebhook(webhookUrl, { drop_pending_updates: true });
-    console.log(`✅ Webhook configurado: ${webhookUrl}`);
-  } catch (err) {
-    console.error('❌ Error configurando webhook:', err.message);
-    process.exit(1);
-  }
+    try {
+      await bot.telegram.setWebhook(webhookUrl, { drop_pending_updates: true });
+      console.log(`✅ Webhook configurado: ${webhookUrl}`);
+    } catch (err) {
+      console.error('❌ Error configurando webhook:', err.message);
+      process.exit(1);
+    }
 
-  console.log('🤖 Bot iniciado correctamente en modo webhook.');
-});
+    console.log('🤖 Bot iniciado correctamente en modo webhook.');
+  });
+} else {
+  // ── LOCAL: Long polling (no Render URL needed) ─────────────────────────────
+  bot.telegram.deleteWebhook({ drop_pending_updates: true })
+    .then(() => bot.launch())
+    .then(() => console.log('🤖 Bot iniciado en modo local (polling).'))
+    .catch((err) => {
+      console.error('❌ Error iniciando bot en modo local:', err.message);
+      process.exit(1);
+    });
+}
 
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
   console.log(`Recibida señal ${signal}. Cerrando...`);
-  bot.telegram.deleteWebhook({ drop_pending_updates: true })
-    .then(() => console.log('Webhook eliminado.'))
-    .catch((err) => console.error('Error eliminando webhook:', err.message))
-    .finally(() => {
-      closeDb();
-      console.log(`Bot detenido (${signal}).`);
-      process.exit(0);
-    });
+
+  const cleanup = () => {
+    closeDb();
+    console.log(`Bot detenido (${signal}).`);
+    process.exit(0);
+  };
+
+  if (RENDER_EXTERNAL_URL) {
+    bot.telegram.deleteWebhook({ drop_pending_updates: true })
+      .then(() => console.log('Webhook eliminado.'))
+      .catch((err) => console.error('Error eliminando webhook:', err.message))
+      .finally(cleanup);
+  } else {
+    bot.stop(signal);
+    cleanup();
+  }
 };
 
 process.once('SIGINT', () => gracefulShutdown('SIGINT'));
 process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+

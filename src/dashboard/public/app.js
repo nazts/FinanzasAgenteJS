@@ -514,6 +514,128 @@ async function loadFunnel() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 6) BEHAVIORAL TAB
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RISK_COLORS = {
+    normal: '#34d399',
+    bajo: '#06b6d4',
+    moderado: '#fb923c',
+    alto: '#f87171',
+};
+const RISK_LABELS = { normal: 'Normal', bajo: 'Bajo', moderado: 'Moderado', alto: 'Alto' };
+
+async function loadBehavioral() {
+    const data = await fetchAPI('/metrics/behavioral');
+    if (!data) return;
+
+    setText('kv-behSpikes', data.spikeCount);
+    setText('kv-behDrift', data.avgDrift + '%');
+    setText('kv-behDrifting', data.pctDrifting + '%');
+    setText('kv-behAnalyzed', data.totalAnalyzed);
+
+    // Savings trend line
+    if (data.savingsTrend?.length) {
+        const labels = data.savingsTrend.map(d => {
+            const [y, m] = d.month.split('-');
+            return new Date(y, m - 1).toLocaleDateString('es-DO', { month: 'short', year: '2-digit' });
+        });
+        destroyChart('savTrend');
+        charts.savTrend = new Chart(document.getElementById('chartSavingsTrend'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Ahorro Neto Global',
+                    data: data.savingsTrend.map(d => d.net_savings),
+                    borderColor: '#a855f7',
+                    backgroundColor: 'rgba(168, 85, 247, 0.08)',
+                    fill: true, tension: 0.4, pointRadius: 4,
+                    pointHoverRadius: 7, pointBackgroundColor: '#a855f7', borderWidth: 2,
+                }],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { tooltip: { ...TOOLTIP_STYLE, callbacks: { label: ctx => `Ahorro: ${currency(ctx.raw)}` } } },
+                scales: {
+                    y: { grid: { color: 'rgba(148,163,184,0.04)' }, ticks: { callback: v => currency(v) } },
+                    x: { grid: { display: false } },
+                },
+            },
+        });
+    }
+
+    // Category growth bar
+    const growthEntries = Object.entries(data.avgCategoryGrowth || {});
+    if (growthEntries.length) {
+        const catColors = { 'Necesidades': '#f471b5', 'Ocio': '#06b6d4', 'Ahorro': '#a855f7' };
+        destroyChart('catGrowth');
+        charts.catGrowth = new Chart(document.getElementById('chartCategoryGrowth'), {
+            type: 'bar',
+            data: {
+                labels: growthEntries.map(([k]) => k),
+                datasets: [{
+                    data: growthEntries.map(([, v]) => v),
+                    backgroundColor: growthEntries.map(([k]) => (catColors[k] || '#64748b') + 'BB'),
+                    borderColor: growthEntries.map(([k]) => catColors[k] || '#64748b'),
+                    borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
+                }],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { ...TOOLTIP_STYLE, callbacks: { label: ctx => `Cambio: ${ctx.raw > 0 ? '+' : ''}${ctx.raw}%` } } },
+                scales: {
+                    y: { grid: { color: 'rgba(148,163,184,0.04)' }, ticks: { callback: v => v + '%' } },
+                    x: { grid: { display: false } },
+                },
+            },
+        });
+    }
+
+    // Risk distribution donut
+    if (data.riskDistribution) {
+        const riskKeys = Object.keys(data.riskDistribution).filter(k => data.riskDistribution[k] > 0);
+        if (riskKeys.length) {
+            destroyChart('riskDist');
+            charts.riskDist = new Chart(document.getElementById('chartRiskDist'), {
+                type: 'doughnut',
+                data: {
+                    labels: riskKeys.map(k => RISK_LABELS[k] || k),
+                    datasets: [{
+                        data: riskKeys.map(k => data.riskDistribution[k]),
+                        backgroundColor: riskKeys.map(k => RISK_COLORS[k] || '#64748b'),
+                        borderColor: '#0d0d1f', borderWidth: 3, hoverOffset: 8,
+                    }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '60%',
+                    plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } }, tooltip: TOOLTIP_STYLE },
+                },
+            });
+        }
+    }
+
+    // Spikes table
+    const spBody = document.getElementById('spikesBody');
+    if (data.usersWithSpikes?.length) {
+        const riskBadge = (rl) => {
+            const color = RISK_COLORS[rl] || '#64748b';
+            return `<span style="color:${color};font-weight:700">${(RISK_LABELS[rl] || rl).toUpperCase()}</span>`;
+        };
+        spBody.innerHTML = data.usersWithSpikes.map(u => `
+      <tr>
+        <td><strong>${esc(u.first_name || u.username || '—')}</strong></td>
+        <td>${riskBadge(u.riskLevel)}</td>
+        <td>${u.spikeCount}</td>
+        <td>${esc(u.categories)}</td>
+      </tr>
+    `).join('');
+    } else {
+        spBody.innerHTML = '<tr><td colspan="4" class="no-data">Sin picos recurrentes detectados 🎉</td></tr>';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -530,6 +652,7 @@ async function loadAll() {
         loadInteractions(),
         loadFinance(),
         loadFunnel(),
+        loadBehavioral(),
     ]);
     updateTimestamp();
 }

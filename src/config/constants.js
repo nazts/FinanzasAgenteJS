@@ -22,11 +22,12 @@ export const RATE_LIMIT = {
 
 export const MESSAGES = {
   WELCOME: (name) =>
-    `👋 ¡Hola, ${name}! Soy tu *asistente de finanzas personales* 💰\n\n` +
-    `Te ayudo a gestionar tu dinero usando la regla *50/30/20*:\n` +
-    `• 🏠 *50%* Necesidades (vivienda, alimentación, servicios)\n` +
-    `• 🎉 *30%* Gustos (ocio, salidas, suscripciones)\n` +
-    `• 💎 *20%* Ahorro e inversión\n\n` +
+    `👋 Hola ${name}, soy tu asistente financiero inteligente 💰\n` +
+    `Te ayudo a organizar tu dinero, analizar tus gastos y mejorar tu ahorro.\n\n` +
+    `Empieza con /onboarding para personalizar tu experiencia. 🚀`,
+
+  WELCOME_BACK: (name) =>
+    `👋 ¡Hola de nuevo, ${name}!\n\n` +
     `*Comandos disponibles:*\n` +
     `📥 /ingreso \`<monto> <descripción>\` — Registrar ingreso\n` +
     `📤 /gasto \`<monto> <descripción>\` — Registrar gasto\n` +
@@ -34,8 +35,8 @@ export const MESSAGES = {
     `📈 /reporte — Gráficas visuales\n` +
     `🧠 /perfil — Análisis de perfil financiero con IA\n` +
     `🎯 /metas — Gestionar metas de ahorro\n` +
-    `📋 /onboarding — Configurar perfil financiero\n\n` +
-    `¡Comienza con /onboarding para un análisis personalizado! 🚀`,
+    `📋 /onboarding — Actualizar perfil financiero\n` +
+    `🤖 /preguntar — Preguntar a la IA sobre tus finanzas`,
 
   RATE_LIMITED: '⏳ Demasiadas solicitudes. Espera un momento antes de continuar.',
   ERROR_GENERAL: '❌ Ocurrió un error inesperado. Intenta de nuevo.',

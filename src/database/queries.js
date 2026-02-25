@@ -85,6 +85,34 @@ export function getTotalByType(userId, type, year, month) {
   return row ? row.total : 0;
 }
 
+export function getTransactionsByDateRange(userId, fromDate, toDate) {
+  return getDb()
+    .prepare(
+      `SELECT * FROM transactions
+       WHERE user_id = ? AND date BETWEEN ? AND ?
+       ORDER BY date ASC`
+    )
+    .all(userId, fromDate, toDate);
+}
+
+export function getMonthlyCategoryTotals(userId, monthsBack = 6) {
+  return getDb()
+    .prepare(
+      `SELECT
+         strftime('%Y-%m', date) AS month,
+         category,
+         SUM(amount) AS total,
+         COUNT(*) AS tx_count
+       FROM transactions
+       WHERE user_id = ?
+         AND type = 'expense'
+         AND date >= date('now', ? || ' months')
+       GROUP BY month, category
+       ORDER BY month ASC, category`
+    )
+    .all(userId, String(-Math.abs(monthsBack)));
+}
+
 // ── Goals ──────────────────────────────────────────────────────────────────
 
 export function createGoal({ userId, name, targetAmount, deadline }) {
@@ -127,6 +155,9 @@ export function upsertFinancialProfile(userId, data) {
     'salary', 'payment_frequency', 'is_student', 'study_cost',
     'transport_cost', 'food_cost', 'leisure_cost', 'services_cost',
     'has_debt', 'debt_total', 'debt_monthly', 'onboarding_completed',
+    'category_trends', 'monthly_deviation_score',
+    'recurring_spike_pattern', 'behavioral_risk_level',
+    'current_savings',
   ];
 
   // Build only the fields present in data

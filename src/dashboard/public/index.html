@@ -59,6 +59,7 @@
       <button class="nav-tab" data-tab="interactions">🤖 Interacciones</button>
       <button class="nav-tab" data-tab="finance">💰 Finanzas</button>
       <button class="nav-tab" data-tab="funnel">🔄 Embudo</button>
+      <button class="nav-tab" data-tab="behavioral">🧠 Behavioral</button>
     </nav>
 
     <!-- ═══ TAB: Overview ════════════════════════════════════════════════ -->
@@ -361,6 +362,67 @@
         <div class="chart-card">
           <h2 class="chart-title">📊 Embudo Visual</h2>
           <div class="chart-container" style="height:320px"><canvas id="chartFunnel"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TAB: Behavioral ═══════════════════════════════════════════════ -->
+    <section id="tab-behavioral" class="tab-content">
+
+      <div class="kpi-grid kpi-grid-4">
+        <div class="kpi-card kpi-c5">
+          <div class="kpi-icon">⚡</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-behSpikes">—</span><span class="kpi-label">Usuarios con Picos</span></div>
+        </div>
+        <div class="kpi-card kpi-c8">
+          <div class="kpi-icon">🌊</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-behDrift">—</span><span class="kpi-label">Drift Promedio</span></div>
+        </div>
+        <div class="kpi-card kpi-c3">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-behDrifting">—</span><span class="kpi-label">% Drifting</span></div>
+        </div>
+        <div class="kpi-card kpi-c2">
+          <div class="kpi-icon">🧠</div>
+          <div class="kpi-content"><span class="kpi-value" id="kv-behAnalyzed">—</span><span class="kpi-label">Analizados</span></div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <h2 class="chart-title">💰 Tendencia Global de Ahorro (6 meses)</h2>
+          <div class="chart-container"><canvas id="chartSavingsTrend"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">📊 Incremento Promedio por Categoría</h2>
+          <div class="chart-container"><canvas id="chartCategoryGrowth"></canvas></div>
+        </div>
+      </div>
+
+      <div class="charts-row charts-row-equal">
+        <div class="chart-card">
+          <h2 class="chart-title">🎯 Distribución de Riesgo Conductual</h2>
+          <div class="chart-container chart-container-donut"><canvas id="chartRiskDist"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">⚡ Usuarios con Picos Recurrentes</h2>
+          <div class="table-wrapper">
+            <table class="data-table" id="spikesTable">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Riesgo</th>
+                  <th>Picos</th>
+                  <th>Categorías</th>
+                </tr>
+              </thead>
+              <tbody id="spikesBody">
+                <tr>
+                  <td colspan="4" class="no-data">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
