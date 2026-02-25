@@ -40,4 +40,12 @@ if (!BOT_TOKEN) {
   throw new Error('BOT_TOKEN is required. Set it in your .env file.');
 }
 
+if (!OPENAI_API_KEY) {
+  console.warn('⚠️ [Config] OPENAI_API_KEY no configurada — las funciones de IA estarán deshabilitadas.');
+} else if (!OPENAI_BASE_URL) {
+  console.warn('⚠️ [Config] OPENAI_BASE_URL no configurada — se usará la URL por defecto de OpenAI.');
+} else {
+  console.log('✅ [Config] Variables de IA configuradas correctamente (modelo: ' + AI_MODEL + ')');
+}
+
 export { BOT_TOKEN, OPENAI_API_KEY, OPENAI_BASE_URL, AI_MODEL, DATABASE_PATH, NODE_ENV, RENDER_EXTERNAL_URL, PORT };

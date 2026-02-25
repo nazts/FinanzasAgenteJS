@@ -11,6 +11,7 @@ export async function generateAIAnalysis(analysis, alerts) {
     const client = await getOrCreateClient();
 
     if (!client) {
+        console.error('❌ [AI] Cliente de IA no disponible. generateAIAnalysis no puede ejecutarse.');
         return (
             '🤖 _No se pudo conectar con la IA. Configura tu API key de OpenAI para obtener un análisis personalizado._\n\n' +
             'Mientras tanto, revisa el resumen numérico y las alertas de arriba.'

@@ -3,7 +3,10 @@ import { OPENAI_API_KEY, OPENAI_BASE_URL, AI_MODEL } from '../config/index.js';
 let openaiClient = null;
 
 export async function getOrCreateClient() {
-  if (!OPENAI_API_KEY) return null;
+  if (!OPENAI_API_KEY) {
+    console.error('❌ [AI] OPENAI_API_KEY no está configurada. La IA no funcionará.');
+    return null;
+  }
   if (!openaiClient) {
     const { default: OpenAI } = await import('openai');
     const opts = { apiKey: OPENAI_API_KEY, timeout: 30000 };
@@ -20,6 +23,7 @@ export async function analyzeFinancialProfile(userData) {
   const client = await getOrCreateClient();
 
   if (!client) {
+    console.error('❌ [AI] Cliente de IA no disponible. analyzeFinancialProfile no puede ejecutarse.');
     return {
       riskProfile: 'No disponible',
       recommendations: [
@@ -58,6 +62,7 @@ Responde en JSON con este formato exacto:
       recommendations: parsed.recommendations || [],
     };
   } catch (err) {
+    console.error('[aiService] analyzeFinancialProfile error:', err.message);
     return {
       riskProfile: 'Moderado',
       recommendations: [
@@ -75,6 +80,7 @@ export async function answerQuestion(question, financialData) {
   const client = await getOrCreateClient();
 
   if (!client) {
+    console.error('❌ [AI] Cliente de IA no disponible. answerQuestion no puede ejecutarse.');
     return '🤖 Configura tu API key de OpenAI para hacer preguntas con IA.';
   }
 
@@ -82,7 +88,7 @@ export async function answerQuestion(question, financialData) {
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: AI_MODEL,
       messages: [
         {
           role: 'system',
@@ -94,7 +100,8 @@ export async function answerQuestion(question, financialData) {
       max_tokens: 200,
     });
     return response.choices[0]?.message?.content || 'No pude responder en este momento.';
-  } catch {
+  } catch (err) {
+    console.error('[aiService] answerQuestion error:', err.message);
     return '❌ Error al consultar la IA. Intenta de nuevo más tarde.';
   }
 }
