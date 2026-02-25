@@ -157,7 +157,7 @@ export function upsertFinancialProfile(userId, data) {
     'has_debt', 'debt_total', 'debt_monthly', 'onboarding_completed',
     'category_trends', 'monthly_deviation_score',
     'recurring_spike_pattern', 'behavioral_risk_level',
-    'current_savings',
+    'current_savings', 'is_employed', 'income_type',
   ];
 
   // Build only the fields present in data

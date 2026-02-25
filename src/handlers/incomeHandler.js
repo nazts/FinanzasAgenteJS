@@ -1,5 +1,5 @@
 import { getOrCreateUser } from '../models/User.js';
-import { createTransaction } from '../database/queries.js';
+import { createTransaction, getFinancialProfile } from '../database/queries.js';
 import { calculate502030 } from '../services/financeService.js';
 import { validateAmount, sanitizeText } from '../utils/validator.js';
 import { formatCurrency } from '../utils/formatter.js';
@@ -28,12 +28,23 @@ export async function incomeHandler(ctx) {
     description,
   });
 
-  const dist = calculate502030(amount);
+  const profile = getFinancialProfile(user.id);
+  const fixedIncome = (profile && profile.onboarding_completed === 1) ? (profile.salary || 0) : 0;
+  const totalIncome = fixedIncome + amount;
+
+  const dist = calculate502030(totalIncome);
+
+  const incomeContextLines = fixedIncome > 0
+    ? `\n📌 *Ingreso fijo mensual:* ${formatCurrency(fixedIncome)}\n` +
+      `📊 *Ingreso variable (este registro):* ${formatCurrency(amount)}\n` +
+      `💰 *Ingreso total:* ${formatCurrency(totalIncome)}\n`
+    : '';
 
   const reply =
     `✅ *Ingreso registrado:* ${formatCurrency(amount)}\n` +
-    `📝 _${description}_\n\n` +
-    `📐 *Distribución recomendada (50/30/20):*\n` +
+    `📝 _${description}_\n` +
+    incomeContextLines +
+    `\n📐 *Distribución recomendada (50/30/20):*\n` +
     `🏠 Necesidades (50%): ${formatCurrency(dist.needs)}\n` +
     `🎉 Gustos (30%):      ${formatCurrency(dist.wants)}\n` +
     `💎 Ahorro (20%):      ${formatCurrency(dist.savings)}\n\n` +

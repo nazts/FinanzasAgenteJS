@@ -35,6 +35,7 @@ export const MESSAGES = {
     `📈 /reporte — Gráficas visuales\n` +
     `🧠 /perfil — Análisis de perfil financiero con IA\n` +
     `🎯 /metas — Gestionar metas de ahorro\n` +
+    `💰 /actualizar_ingreso \`<monto>\` — Actualizar ingreso fijo mensual\n` +
     `📋 /onboarding — Actualizar perfil financiero\n` +
     `🤖 /preguntar — Preguntar a la IA sobre tus finanzas`,
 
