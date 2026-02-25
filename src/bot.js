@@ -81,66 +81,46 @@ bot.catch((err) => {
   errorHandler(err);
 });
 
-// ── Startup: auto-detect local (polling) vs Render (webhook) ─────────────────
+// ── Express server + Webhook ──────────────────────────────────────────────────
+const app = express();
 
-if (RENDER_EXTERNAL_URL) {
-  // ── PRODUCTION: Express server + Webhook (Render) ──────────────────────────
-  const app = express();
+app.get('/', (_req, res) => {
+  res.send('🤖 Bot activo');
+});
 
-  app.get('/', (_req, res) => {
-    res.send('🤖 Bot activo');
-  });
+const webhookPath = `/bot${BOT_TOKEN}`;
+app.use(bot.webhookCallback(webhookPath));
 
-  const webhookPath = `/bot${BOT_TOKEN}`;
-  app.use(bot.webhookCallback(webhookPath));
+app.listen(PORT, async () => {
+  console.log(`🚀 Servidor Express escuchando en puerto ${PORT}`);
 
-  app.listen(PORT, async () => {
-    console.log(`🚀 Servidor Express escuchando en puerto ${PORT}`);
+  const webhookUrl = `${RENDER_EXTERNAL_URL}${webhookPath}`;
 
-    const webhookUrl = `${RENDER_EXTERNAL_URL}${webhookPath}`;
+  try {
+    await bot.telegram.setWebhook(webhookUrl, { drop_pending_updates: true });
+    console.log(`✅ Webhook configurado: ${webhookUrl}`);
+  } catch (err) {
+    console.error('❌ Error configurando webhook:', err.message);
+    process.exit(1);
+  }
 
-    try {
-      await bot.telegram.setWebhook(webhookUrl, { drop_pending_updates: true });
-      console.log(`✅ Webhook configurado: ${webhookUrl}`);
-    } catch (err) {
-      console.error('❌ Error configurando webhook:', err.message);
-      process.exit(1);
-    }
-
-    console.log('🤖 Bot iniciado correctamente en modo webhook.');
-  });
-} else {
-  // ── LOCAL: Long polling (no Render URL needed) ─────────────────────────────
-  bot.telegram.deleteWebhook({ drop_pending_updates: true })
-    .then(() => bot.launch())
-    .then(() => console.log('🤖 Bot iniciado en modo local (polling).'))
-    .catch((err) => {
-      console.error('❌ Error iniciando bot en modo local:', err.message);
-      process.exit(1);
-    });
-}
+  console.log('🤖 Bot iniciado correctamente en modo webhook.');
+});
 
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
   console.log(`Recibida señal ${signal}. Cerrando...`);
-
-  const cleanup = () => {
-    closeDb();
-    console.log(`Bot detenido (${signal}).`);
-    process.exit(0);
-  };
-
-  if (RENDER_EXTERNAL_URL) {
-    bot.telegram.deleteWebhook({ drop_pending_updates: true })
-      .then(() => console.log('Webhook eliminado.'))
-      .catch((err) => console.error('Error eliminando webhook:', err.message))
-      .finally(cleanup);
-  } else {
-    bot.stop(signal);
-    cleanup();
-  }
+  bot.telegram.deleteWebhook({ drop_pending_updates: true })
+    .then(() => console.log('Webhook eliminado.'))
+    .catch((err) => console.error('Error eliminando webhook:', err.message))
+    .finally(() => {
+      closeDb();
+      console.log(`Bot detenido (${signal}).`);
+      process.exit(0);
+    });
 };
 
 process.once('SIGINT', () => gracefulShutdown('SIGINT'));
 process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
 
