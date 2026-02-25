@@ -77,6 +77,8 @@ export function runMigrations(db) {
     [`recurring_spike_pattern`, `TEXT DEFAULT '{}'`],
     [`behavioral_risk_level`, `TEXT DEFAULT 'normal'`],
     [`current_savings`, `REAL DEFAULT 0`],
+    [`is_employed`, `INTEGER DEFAULT 0`],
+    [`income_type`, `TEXT DEFAULT 'fijo'`],
   ];
   for (const [col, def] of newCols) {
     try {

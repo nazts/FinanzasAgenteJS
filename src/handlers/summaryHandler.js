@@ -8,10 +8,13 @@ export async function summaryHandler(ctx) {
   const data = getMonthlyAnalysis(user.id, year, month);
 
   if (data.income === 0 && data.totalExpenses === 0) {
-    return ctx.reply('📭 No hay datos registrados para este mes. Registra un ingreso con /ingreso.');
+    return ctx.reply(
+      '📭 No hay datos registrados para este mes.\n' +
+      'Registra un ingreso con /ingreso o configura tu salario con /actualizar_ingreso.'
+    );
   }
 
-  const { income, ideal, actual, totalExpenses, deviations, alerts, surplus } = data;
+  const { income, fixedIncome, variableIncome, ideal, actual, totalExpenses, deviations, alerts, surplus } = data;
 
   const pctNeeds = income > 0 ? actual.needs / income : 0;
   const pctWants = income > 0 ? actual.wants / income : 0;
@@ -19,9 +22,15 @@ export async function summaryHandler(ctx) {
 
   const devSign = (n) => (n > 0 ? `+${formatCurrency(n)}` : formatCurrency(n));
 
+  const incomeLines = [`💰 *Ingresos:* ${formatCurrency(income)}`];
+  if (fixedIncome > 0 || variableIncome > 0) {
+    incomeLines.push(`   📌 Fijo: ${formatCurrency(fixedIncome)}`);
+    incomeLines.push(`   📊 Variable: ${formatCurrency(variableIncome)}`);
+  }
+
   const lines = [
     `📊 *Resumen de ${monthName(month)} ${year}*\n`,
-    `💰 *Ingresos:* ${formatCurrency(income)}`,
+    ...incomeLines,
     `💸 *Gastos totales:* ${formatCurrency(totalExpenses)}`,
     `${surplus >= 0 ? '✅' : '🔴'} *Saldo:* ${formatCurrency(surplus)}\n`,
     `─────────────────────────`,

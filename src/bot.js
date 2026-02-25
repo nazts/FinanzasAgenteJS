@@ -17,6 +17,7 @@ import { goalsHandler, goalsCallbackHandler, goalsTextHandler } from './handlers
 import { errorHandler } from './handlers/errorHandler.js';
 import { onboardingScene, onboardingCommand } from './handlers/onboardingHandler.js';
 import { askHandler, askCallbackHandler } from './handlers/askHandler.js';
+import { updateIncomeHandler } from './handlers/updateIncomeHandler.js';
 
 // Initialise DB (runs migrations)
 getDb();
@@ -50,6 +51,7 @@ bot.command('perfil', profileHandler);
 bot.command('metas', goalsHandler);
 bot.command('onboarding', onboardingCommand);
 bot.command('preguntar', askHandler);
+bot.command('actualizar_ingreso', updateIncomeHandler);
 
 // ── Callback query handlers ───────────────────────────────────────────────────
 bot.action(/^cat:/, expenseCategoryHandler);

@@ -20,21 +20,34 @@ import { calculateMonthlyIncome } from '../services/financialAnalysisService.js'
 export const onboardingScene = new Scenes.WizardScene(
     'onboarding-wizard',
 
-    // ── STEP 0: Bienvenida + pedir salario ──────────────────────────────────
+    // ── STEP 0: Bienvenida + preguntar si trabaja ───────────────────────────
     async (ctx) => {
         await ctx.reply(
             '📋 *Onboarding Financiero*\n\n' +
             'Voy a hacerte algunas preguntas para entender tu situación financiera real ' +
             'y darte un análisis personalizado.\n\n' +
             'Puedes cancelar en cualquier momento con /cancelar.\n\n' +
-            '💰 *¿Cuánto ganas AL MES en total?*\n' +
-            '_(Si te pagan quincenal o semanal, suma todo lo que recibes en el mes. Ej: 15000)_',
-            { parse_mode: 'Markdown' },
+            '💼 *¿Trabajas actualmente?*',
+            {
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard([
+                    [Markup.button.callback('✅ Sí', 'employed:yes')],
+                    [Markup.button.callback('❌ No', 'employed:no')],
+                ]),
+            },
         );
         return ctx.wizard.next();
     },
 
-    // ── STEP 1: Recibir salario → pedir frecuencia ─────────────────────────
+    // ── STEP 1: Recibir si trabaja → pedir salario (si trabaja) ────────────
+    async (ctx) => {
+        if (checkCancel(ctx)) return ctx.scene.leave();
+        // This step expects a callback_query from the employment question
+        await ctx.reply('Por favor, selecciona una opción del teclado de arriba ☝️');
+        return;
+    },
+
+    // ── STEP 2: Recibir salario → pedir frecuencia ─────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text);
@@ -58,7 +71,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 2: Recibir frecuencia → preguntar si estudia ──────────────────
+    // ── STEP 3: Recibir frecuencia → preguntar si estudia ──────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
 
@@ -85,7 +98,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 3: Estudia? → costo estudios o transporte ─────────────────────
+    // ── STEP 4: Estudia? → costo estudios o transporte ─────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
 
@@ -106,7 +119,7 @@ export const onboardingScene = new Scenes.WizardScene(
                 '🎓 *¿Cuánto pagas al mes por estudios?*\n_(Escribe el monto)_',
                 { parse_mode: 'Markdown' },
             );
-            return ctx.wizard.next(); // → step 4 (study cost)
+            return ctx.wizard.next(); // → step 5 (study cost)
         }
 
         // Skip study cost step
@@ -116,11 +129,11 @@ export const onboardingScene = new Scenes.WizardScene(
             '🚌 *¿Cuánto gastas al mes en transporte?*\n_(Escribe el monto)_',
             { parse_mode: 'Markdown' },
         );
-        ctx.wizard.selectStep(5); // jump to step 5 (transport already asked)
+        ctx.wizard.selectStep(6); // jump to step 6 (transport)
         return;
     },
 
-    // ── STEP 4: Costo estudios → transporte ────────────────────────────────
+    // ── STEP 5: Costo estudios → transporte ────────────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -143,7 +156,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 5: Transporte → comida ────────────────────────────────────────
+    // ── STEP 6: Transporte → comida ────────────────────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -166,7 +179,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 6: Comida → ocio ──────────────────────────────────────────────
+    // ── STEP 7: Comida → ocio ──────────────────────────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -189,7 +202,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 7: Ocio → servicios ───────────────────────────────────────────
+    // ── STEP 8: Ocio → servicios ───────────────────────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -212,7 +225,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 8: Servicios → preguntar deudas ───────────────────────────────
+    // ── STEP 9: Servicios → preguntar deudas ───────────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -235,7 +248,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 9: Deudas? → monto total o finalizar ─────────────────────────
+    // ── STEP 10: Deudas? → monto total o finalizar ─────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
 
@@ -256,7 +269,7 @@ export const onboardingScene = new Scenes.WizardScene(
                 '💳 *¿Cuál es el monto total de tu deuda?*\n_(Escribe el monto)_',
                 { parse_mode: 'Markdown' },
             );
-            return ctx.wizard.next(); // → step 10
+            return ctx.wizard.next(); // → step 11
         }
 
         // No debt → ask about savings
@@ -270,10 +283,10 @@ export const onboardingScene = new Scenes.WizardScene(
                 [Markup.button.callback('No', 'savings:no')],
             ]),
         );
-        return ctx.wizard.selectStep(12);
+        return ctx.wizard.selectStep(13);
     },
 
-    // ── STEP 10: Monto total deuda → cuota mensual ────────────────────────
+    // ── STEP 11: Monto total deuda → cuota mensual ────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -293,7 +306,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 11: Cuota mensual → preguntar ahorro ──────────────────────────
+    // ── STEP 12: Cuota mensual → preguntar ahorro ──────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -316,7 +329,7 @@ export const onboardingScene = new Scenes.WizardScene(
         return ctx.wizard.next();
     },
 
-    // ── STEP 12: Ahorro? → monto ahorrado o finalizar ─────────────────────
+    // ── STEP 13: Ahorro? → monto ahorrado o finalizar ─────────────────────
     async (ctx) => {
         // This step is a placeholder for the savings callback handler
         if (checkCancel(ctx)) return ctx.scene.leave();
@@ -326,7 +339,7 @@ export const onboardingScene = new Scenes.WizardScene(
         }
     },
 
-    // ── STEP 13: Monto ahorrado → finalizar ───────────────────────────────
+    // ── STEP 14: Monto ahorrado → finalizar ───────────────────────────────
     async (ctx) => {
         if (checkCancel(ctx)) return ctx.scene.leave();
         const { valid, amount, error } = validateAmount(ctx.message?.text, { allowZero: true });
@@ -344,6 +357,42 @@ export const onboardingScene = new Scenes.WizardScene(
 );
 
 // Handle callback queries within the wizard — self-contained handlers
+onboardingScene.action(/^employed:/, async (ctx) => {
+    const isEmployed = ctx.callbackQuery.data === 'employed:yes';
+    await safeCbAnswer(ctx);
+
+    const user = getOrCreateUser(ctx);
+    savePartialProfile(user.id, { is_employed: isEmployed ? 1 : 0 });
+
+    if (isEmployed) {
+        ctx.wizard.state.is_employed = true;
+        await ctx.reply(
+            '💰 *¿Cuánto ganas AL MES en total?*\n' +
+            '_(Si te pagan quincenal o semanal, suma todo lo que recibes en el mes. Ej: 15000)_',
+            { parse_mode: 'Markdown' },
+        );
+        return ctx.wizard.selectStep(2); // → step 2 (salary text input)
+    }
+
+    // Not employed → skip salary and frequency
+    ctx.wizard.state.is_employed = false;
+    ctx.wizard.state.salary = 0;
+    ctx.wizard.state.payment_frequency = null;
+    savePartialProfile(user.id, { salary: 0 });
+
+    await ctx.reply(
+        '📚 *¿Estudias actualmente?*',
+        {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('Sí', 'study:yes')],
+                [Markup.button.callback('No', 'study:no')],
+            ]),
+        },
+    );
+    return ctx.wizard.selectStep(4); // → step 4 (studies question)
+});
+
 onboardingScene.action(/^freq:/, async (ctx) => {
     const frequency = ctx.callbackQuery.data.replace('freq:', '');
     ctx.wizard.state.payment_frequency = frequency;
@@ -371,7 +420,7 @@ onboardingScene.action(/^freq:/, async (ctx) => {
             ]),
         },
     );
-    return ctx.wizard.selectStep(3);
+    return ctx.wizard.selectStep(4);
 });
 
 onboardingScene.action(/^study:/, async (ctx) => {
@@ -387,7 +436,7 @@ onboardingScene.action(/^study:/, async (ctx) => {
             '🎓 *¿Cuánto pagas al mes por estudios?*\n_(Escribe el monto)_',
             { parse_mode: 'Markdown' },
         );
-        return ctx.wizard.selectStep(4); // → step 4 (study cost text input)
+        return ctx.wizard.selectStep(5); // → step 5 (study cost text input)
     }
 
     // Skip study cost step
@@ -397,7 +446,7 @@ onboardingScene.action(/^study:/, async (ctx) => {
         '🚌 *¿Cuánto gastas al mes en transporte?*\n_(Escribe el monto)_',
         { parse_mode: 'Markdown' },
     );
-    return ctx.wizard.selectStep(5); // → step 5 (transport text input)
+    return ctx.wizard.selectStep(6); // → step 6 (transport text input)
 });
 
 onboardingScene.action(/^debt:/, async (ctx) => {
@@ -413,7 +462,7 @@ onboardingScene.action(/^debt:/, async (ctx) => {
             '💳 *¿Cuál es el monto total de tu deuda?*\n_(Escribe el monto)_',
             { parse_mode: 'Markdown' },
         );
-        return ctx.wizard.selectStep(10);
+        return ctx.wizard.selectStep(11);
     }
 
     // No debt → ask about savings
@@ -430,14 +479,14 @@ onboardingScene.action(/^debt:/, async (ctx) => {
             ]),
         },
     );
-    return ctx.wizard.selectStep(12);
+    return ctx.wizard.selectStep(13);
 });
 
 // "No gasto en eso" button — sets the expense to 0 and advances to the next question
 const SKIP_MAP = {
-    transport_cost: { step: 6, msg: '🍔 *¿Cuánto gastas aproximadamente al mes en comida?*\n_(Escribe el monto o toca el botón)_', nextSkip: 'food_cost' },
-    food_cost: { step: 7, msg: '🎮 *¿Cuánto gastas aproximadamente al mes en ocio?*\n_(Salidas, entretenimiento, suscripciones, etc.)_', nextSkip: 'leisure_cost' },
-    leisure_cost: { step: 8, msg: '💡 *¿Cuánto gastas aproximadamente al mes en servicios?*\n_(Luz, agua, internet, teléfono, etc.)_', nextSkip: 'services_cost' },
+    transport_cost: { step: 7, msg: '🍔 *¿Cuánto gastas aproximadamente al mes en comida?*\n_(Escribe el monto o toca el botón)_', nextSkip: 'food_cost' },
+    food_cost: { step: 8, msg: '🎮 *¿Cuánto gastas aproximadamente al mes en ocio?*\n_(Salidas, entretenimiento, suscripciones, etc.)_', nextSkip: 'leisure_cost' },
+    leisure_cost: { step: 9, msg: '💡 *¿Cuánto gastas aproximadamente al mes en servicios?*\n_(Luz, agua, internet, teléfono, etc.)_', nextSkip: 'services_cost' },
     services_cost: { step: null }, // last expense → go to debt question
 };
 
@@ -464,7 +513,7 @@ onboardingScene.action(/^skip:/, async (ctx) => {
                 ]),
             },
         );
-        return ctx.wizard.selectStep(9);
+        return ctx.wizard.selectStep(10);
     }
 
     await ctx.reply(
@@ -486,7 +535,7 @@ onboardingScene.action(/^savings:/, async (ctx) => {
             '🏦 *¿Cuánto tienes ahorrado?*\n_(Escribe el monto)_',
             { parse_mode: 'Markdown' },
         );
-        return ctx.wizard.selectStep(13); // → step 13 (savings amount text input)
+        return ctx.wizard.selectStep(14); // → step 14 (savings amount text input)
     }
 
     // No savings → finish

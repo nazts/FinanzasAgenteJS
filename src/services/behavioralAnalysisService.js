@@ -356,7 +356,11 @@ export function getFullBehavioralReport(userId) {
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonthNum = now.getMonth() + 1;
-    const monthlyIncome = getTotalByType(userId, 'income', curYear, curMonthNum);
+    const variableIncome = getTotalByType(userId, 'income', curYear, curMonthNum);
+    const fixedIncome = (profile && profile.onboarding_completed === 1 && profile.salary > 0)
+      ? profile.salary
+      : 0;
+    const monthlyIncome = fixedIncome + variableIncome;
 
     const report = {
         userId,

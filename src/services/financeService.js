@@ -1,5 +1,5 @@
 import { RULE_50_30_20, CATEGORIES } from '../config/constants.js';
-import { getTotalByType, getSummaryByMonth } from '../database/queries.js';
+import { getTotalByType, getSummaryByMonth, getFinancialProfile } from '../database/queries.js';
 
 /**
  * Calculate 50/30/20 ideal amounts from income.
@@ -16,7 +16,18 @@ export function calculate502030(income) {
  * Analyse actual vs ideal 50/30/20 spending for a user/month.
  */
 export function analyzeExpenses(userId, year, month) {
-  const income = getTotalByType(userId, 'income', year, month);
+  // 1. Ingreso variable: transacciones manuales del mes
+  const variableIncome = getTotalByType(userId, 'income', year, month);
+
+  // 2. Ingreso fijo: del perfil financiero (onboarding)
+  const profile = getFinancialProfile(userId);
+  const fixedIncome = (profile && profile.onboarding_completed === 1 && profile.salary > 0)
+    ? profile.salary
+    : 0;
+
+  // 3. Ingreso total = fijo + variable
+  const income = fixedIncome + variableIncome;
+
   const ideal = calculate502030(income);
 
   const summary = getSummaryByMonth(userId, year, month);
@@ -38,7 +49,7 @@ export function analyzeExpenses(userId, year, month) {
     savings: actual.savings - ideal.savings,
   };
 
-  return { income, ideal, actual, totalExpenses, deviations };
+  return { income, fixedIncome, variableIncome, ideal, actual, totalExpenses, deviations };
 }
 
 /**
