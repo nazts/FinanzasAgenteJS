@@ -19,7 +19,9 @@ export async function showMainMenu(ctx) {
         '🎯 /metas — Metas de ahorro\n' +
         '💰 /actualizar\\_ingreso `<monto>` — Actualizar ingreso fijo\n' +
         '📋 /onboarding — Actualizar perfil financiero\n' +
-        '🤖 /preguntar — Preguntar a la IA';
+        '🤖 /preguntar — Preguntar a la IA\n' +
+        '💬 /sugerencia `<texto>` — Enviar sugerencia\n' +
+        'ℹ️ /ayuda — Cómo funciona el bot';
 
     return ctx.reply(menuText, { parse_mode: 'Markdown' });
 }

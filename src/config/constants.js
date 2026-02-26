@@ -20,7 +20,7 @@ export const MESSAGES = {
   WELCOME: (name) =>
     `👋 Hola ${name}, soy tu asistente financiero inteligente 💰\n` +
     `Te ayudo a organizar tu dinero, analizar tus gastos y mejorar tu ahorro.\n\n` +
-    `Empieza con /onboarding para personalizar tu experiencia. 🚀`,
+    `Vamos a configurar tu perfil financiero para darte un análisis personalizado. 🚀`,
 
 
   RATE_LIMITED: '⏳ Demasiadas solicitudes. Espera un momento antes de continuar.',

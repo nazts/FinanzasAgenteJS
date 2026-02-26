@@ -1,8 +1,15 @@
 import { OPENAI_API_KEY, OPENAI_BASE_URL, AI_MODEL } from '../config/index.js';
 
 let openaiClient = null;
+let aiEnabled = true;
+
+export function isAIEnabled() { return aiEnabled; }
+export function setAIEnabled(val) { aiEnabled = !!val; }
 
 export async function getOrCreateClient() {
+  if (!aiEnabled) {
+    return null;
+  }
   if (!OPENAI_API_KEY) {
     console.error('❌ [AI] OPENAI_API_KEY no está configurada. La IA no funcionará.');
     return null;

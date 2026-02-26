@@ -636,6 +636,119 @@ async function loadBehavioral() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 7) SUGGESTIONS TAB
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadSuggestions() {
+    const data = await fetchAPI('/metrics/suggestions');
+    if (!data) return;
+
+    setText('kv-sugTotal', data.total);
+
+    const tbody = document.getElementById('suggestionsBody');
+    if (!data.suggestions.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="no-data">No hay sugerencias aún.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.suggestions.map(s => `
+      <tr>
+        <td style="color:var(--text-muted);font-size:0.72rem;white-space:nowrap">${shortDate(s.created_at)}</td>
+        <td><strong>${esc(s.first_name || s.username || '—')}</strong></td>
+        <td>${esc(s.message)}</td>
+      </tr>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8) CONTROL TAB
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadControl() {
+    const data = await fetchAPI('/ai/status');
+    if (!data) return;
+
+    const toggle = document.getElementById('aiToggle');
+    const label = document.getElementById('aiStatusLabel');
+
+    toggle.checked = data.enabled;
+    label.textContent = data.enabled ? '✅ Activada' : '❌ Desactivada';
+    label.style.color = data.enabled ? 'var(--accent-green)' : 'var(--accent-red)';
+}
+
+// AI Toggle event
+document.getElementById('aiToggle').addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    const msg = document.getElementById('aiToggleMsg');
+    msg.textContent = 'Guardando...';
+
+    try {
+        const res = await fetch(`${API_BASE}/ai/toggle`, {
+            method: 'POST',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+            const label = document.getElementById('aiStatusLabel');
+            label.textContent = data.enabled ? '✅ Activada' : '❌ Desactivada';
+            label.style.color = data.enabled ? 'var(--accent-green)' : 'var(--accent-red)';
+            msg.textContent = `IA ${data.enabled ? 'activada' : 'desactivada'} correctamente.`;
+        } else {
+            msg.textContent = '❌ Error: ' + (data.error || 'Desconocido');
+            e.target.checked = !enabled; // revert
+        }
+    } catch (err) {
+        msg.textContent = '❌ Error de red';
+        e.target.checked = !enabled;
+    }
+});
+
+// Broadcast event
+document.getElementById('broadcastBtn').addEventListener('click', async () => {
+    const textarea = document.getElementById('broadcastMsg');
+    const result = document.getElementById('broadcastResult');
+    const btn = document.getElementById('broadcastBtn');
+    const message = textarea.value.trim();
+
+    if (!message) {
+        result.textContent = '⚠️ Escribe un mensaje primero.';
+        return;
+    }
+
+    if (!confirm(`¿Enviar este mensaje a TODOS los usuarios registrados?\n\n"${message.substring(0, 100)}..."`)) {
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    result.textContent = '';
+
+    try {
+        const res = await fetch(`${API_BASE}/broadcast`, {
+            method: 'POST',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+            result.textContent = `✅ Enviado a ${data.sent}/${data.total} usuarios.` +
+                (data.failed > 0 ? ` (${data.failed} fallidos)` : '');
+            result.style.color = 'var(--accent-green)';
+            textarea.value = '';
+        } else {
+            result.textContent = '❌ Error: ' + (data.error || 'Desconocido');
+            result.style.color = 'var(--accent-red)';
+        }
+    } catch (err) {
+        result.textContent = '❌ Error de red';
+        result.style.color = 'var(--accent-red)';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Enviar a Todos';
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -653,6 +766,8 @@ async function loadAll() {
         loadFinance(),
         loadFunnel(),
         loadBehavioral(),
+        loadSuggestions(),
+        loadControl(),
     ]);
     updateTimestamp();
 }

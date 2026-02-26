@@ -18,11 +18,15 @@ import { errorHandler } from './handlers/errorHandler.js';
 import { onboardingScene, onboardingCommand } from './handlers/onboardingHandler.js';
 import { askHandler, askCallbackHandler } from './handlers/askHandler.js';
 import { updateIncomeHandler } from './handlers/updateIncomeHandler.js';
+import { suggestionHandler } from './handlers/suggestionHandler.js';
+import { helpHandler } from './handlers/helpHandler.js';
+import { dashboardRouter, setBotInstance } from './dashboard/dashboardRoutes.js';
 
 // Initialise DB (runs migrations)
 getDb();
 
 const bot = new Telegraf(BOT_TOKEN, { handlerTimeout: 180_000 });
+setBotInstance(bot);
 
 // ── Session & Scenes middleware ──────────────────────────────────────────────
 const stage = new Scenes.Stage([onboardingScene]);
@@ -52,6 +56,8 @@ bot.command('metas', goalsHandler);
 bot.command('onboarding', onboardingCommand);
 bot.command('preguntar', askHandler);
 bot.command('actualizar_ingreso', updateIncomeHandler);
+bot.command('sugerencia', suggestionHandler);
+bot.command('ayuda', helpHandler);
 
 // ── Callback query handlers ───────────────────────────────────────────────────
 bot.action(/^cat:/, expenseCategoryHandler);
@@ -90,6 +96,9 @@ app.get('/', (_req, res) => {
   res.send('🤖 Bot activo');
 });
 
+// ── Dashboard routes ──────────────────────────────────────────────────────────
+app.use(dashboardRouter);
+
 const webhookPath = `/bot${BOT_TOKEN}`;
 app.use(bot.webhookCallback(webhookPath));
 
@@ -106,6 +115,11 @@ app.listen(PORT, async () => {
     process.exit(1);
   }
 
+  // Dashboard URL
+  const dashboardUrl = RENDER_EXTERNAL_URL
+    ? `${RENDER_EXTERNAL_URL}/admin`
+    : `http://localhost:${PORT}/admin`;
+  console.log(`📊 Dashboard disponible en: ${dashboardUrl}`);
   console.log('🤖 Bot iniciado correctamente en modo webhook.');
 });
 

@@ -17,6 +17,12 @@ export function findUserByTelegramId(telegramId) {
     .get(String(telegramId));
 }
 
+export function findAllTelegramIds() {
+  return getDb()
+    .prepare('SELECT telegram_id FROM users')
+    .all();
+}
+
 export function createUser({ telegramId, username, firstName }) {
   const stmt = getDb().prepare(
     'INSERT OR IGNORE INTO users (telegram_id, username, first_name) VALUES (?, ?, ?)'
@@ -179,4 +185,25 @@ export function getFinancialProfile(userId) {
 
 export function markOnboardingCompleted(userId) {
   return upsertFinancialProfile(userId, { onboarding_completed: 1 });
+}
+
+// ── Suggestions ────────────────────────────────────────────────────────────
+
+export function createSuggestion(userId, message) {
+  const stmt = getDb().prepare(
+    'INSERT INTO suggestions (user_id, message) VALUES (?, ?)'
+  );
+  const result = stmt.run(userId, message);
+  return getDb().prepare('SELECT * FROM suggestions WHERE id = ?').get(result.lastInsertRowid);
+}
+
+export function getAllSuggestions() {
+  return getDb()
+    .prepare(
+      `SELECT s.id, s.message, s.created_at, u.username, u.first_name, u.telegram_id
+       FROM suggestions s
+       JOIN users u ON s.user_id = u.id
+       ORDER BY s.created_at DESC`
+    )
+    .all();
 }

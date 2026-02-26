@@ -449,3 +449,21 @@ export function getBehavioralMetrics() {
     riskDistribution,
   };
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 7) SUGGESTIONS
+// ═════════════════════════════════════════════════════════════════════════════
+
+export function getSuggestionsMetrics() {
+  const suggestions = db().prepare(`
+    SELECT s.id, s.message, s.created_at, u.username, u.first_name, u.telegram_id
+    FROM suggestions s
+    JOIN users u ON s.user_id = u.id
+    ORDER BY s.created_at DESC
+  `).all();
+
+  return {
+    total: suggestions.length,
+    suggestions,
+  };
+}

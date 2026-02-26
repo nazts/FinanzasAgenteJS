@@ -14,6 +14,7 @@ import {
     getFinanceMetrics,
     getFunnelMetrics,
     getBehavioralMetrics,
+    getSuggestionsMetrics,
     setDbGetter,
 } from './dashboardService.js';
 
@@ -97,6 +98,11 @@ app.get('/admin/api/metrics/funnel', adminAuth, (_req, res) => {
 
 app.get('/admin/api/metrics/behavioral', adminAuth, (_req, res) => {
     try { res.json(getBehavioralMetrics()); }
+    catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/admin/api/metrics/suggestions', adminAuth, (_req, res) => {
+    try { res.json(getSuggestionsMetrics()); }
     catch (err) { res.status(500).json({ error: err.message }); }
 });
 

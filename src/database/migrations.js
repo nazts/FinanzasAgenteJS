@@ -68,6 +68,16 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_activity_log_user_id ON user_activity_log(user_id);
     CREATE INDEX IF NOT EXISTS idx_activity_log_timestamp ON user_activity_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_activity_log_command ON user_activity_log(command);
+
+    CREATE TABLE IF NOT EXISTS suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_suggestions_created_at ON suggestions(created_at);
   `);
 
   // ── Behavioral intelligence columns (safe migration) ──────────────────
