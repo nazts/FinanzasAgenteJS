@@ -25,13 +25,6 @@ export function createUser({ telegramId, username, firstName }) {
   return findUserByTelegramId(telegramId);
 }
 
-export function updateUser(telegramId, { username, firstName }) {
-  getDb()
-    .prepare('UPDATE users SET username = ?, first_name = ? WHERE telegram_id = ?')
-    .run(username || null, firstName || null, String(telegramId));
-  return findUserByTelegramId(telegramId);
-}
-
 // ── Transactions ───────────────────────────────────────────────────────────
 
 export function createTransaction({ userId, type, amount, category, description, date }) {
@@ -85,15 +78,6 @@ export function getTotalByType(userId, type, year, month) {
   return row ? row.total : 0;
 }
 
-export function getTransactionsByDateRange(userId, fromDate, toDate) {
-  return getDb()
-    .prepare(
-      `SELECT * FROM transactions
-       WHERE user_id = ? AND date BETWEEN ? AND ?
-       ORDER BY date ASC`
-    )
-    .all(userId, fromDate, toDate);
-}
 
 export function getMonthlyCategoryTotals(userId, monthsBack = 6) {
   return getDb()

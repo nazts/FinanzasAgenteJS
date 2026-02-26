@@ -1,7 +1,3 @@
-import {
-    upsertFinancialProfile,
-    getFinancialProfile,
-    markOnboardingCompleted,
-} from '../database/queries.js';
+import { getFinancialProfile } from '../database/queries.js';
 
-export { upsertFinancialProfile, getFinancialProfile, markOnboardingCompleted };
+export { getFinancialProfile };

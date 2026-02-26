@@ -1,4 +1,4 @@
-import { findUserByTelegramId, createUser, updateUser } from '../database/queries.js';
+import { findUserByTelegramId, createUser } from '../database/queries.js';
 
 export function getOrCreateUser(ctx) {
   const { id, username, first_name } = ctx.from;
@@ -8,5 +8,3 @@ export function getOrCreateUser(ctx) {
   }
   return user;
 }
-
-export { findUserByTelegramId, createUser, updateUser };

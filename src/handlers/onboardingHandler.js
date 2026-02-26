@@ -13,7 +13,7 @@ import {
 import { generateAIAnalysis } from '../services/aiAnalysisService.js';
 import { formatCurrency, formatPercentage } from '../utils/formatter.js';
 import { validateAmount } from '../utils/validator.js';
-import { calculateMonthlyIncome } from '../services/financialAnalysisService.js';
+import { showMainMenu } from '../services/menuService.js';
 
 // ── Wizard Scene ─────────────────────────────────────────────────────────────
 
@@ -604,6 +604,11 @@ async function finishOnboarding(ctx) {
         const user = getOrCreateUser(ctx);
         completeOnboarding(user.id);
 
+        // Mark session so wizard won't re-trigger within the same session
+        if (ctx.session) {
+            ctx.session.onboardingCompleted = true;
+        }
+
         const profile = getFinancialProfile(user.id);
         const analysis = analyzeFinancialStructure(profile);
         const alerts = detectAlerts(analysis);
@@ -637,10 +642,9 @@ async function finishOnboarding(ctx) {
             console.error('[onboarding] AI analysis failed:', aiErr.message);
         }
 
-        await ctx.reply(
-            '✅ Perfil guardado. Usa /preguntar para consultas con IA o /resumen para ver tu mes.',
-            { parse_mode: 'Markdown' },
-        );
+        // Show main menu after onboarding completes
+        await ctx.reply('✅ *Perfil guardado exitosamente.*', { parse_mode: 'Markdown' });
+        await showMainMenu(ctx);
     } catch (err) {
         console.error('[onboarding] finishOnboarding error:', err.message);
         await ctx.reply('❌ Hubo un error. Intenta de nuevo con /onboarding.');

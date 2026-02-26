@@ -10,10 +10,6 @@ export const CATEGORIES = {
   SAVING: 'ahorro',
 };
 
-export const TRANSACTION_TYPES = {
-  INCOME: 'income',
-  EXPENSE: 'expense',
-};
 
 export const RATE_LIMIT = {
   MAX_REQUESTS: 30,
@@ -26,18 +22,6 @@ export const MESSAGES = {
     `Te ayudo a organizar tu dinero, analizar tus gastos y mejorar tu ahorro.\n\n` +
     `Empieza con /onboarding para personalizar tu experiencia. 🚀`,
 
-  WELCOME_BACK: (name) =>
-    `👋 ¡Hola de nuevo, ${name}!\n\n` +
-    `*Comandos disponibles:*\n` +
-    `📥 /ingreso \`<monto> <descripción>\` — Registrar ingreso\n` +
-    `📤 /gasto \`<monto> <descripción>\` — Registrar gasto\n` +
-    `📊 /resumen — Resumen del mes actual\n` +
-    `📈 /reporte — Gráficas visuales\n` +
-    `🧠 /perfil — Análisis de perfil financiero con IA\n` +
-    `🎯 /metas — Gestionar metas de ahorro\n` +
-    `💰 /actualizar_ingreso \`<monto>\` — Actualizar ingreso fijo mensual\n` +
-    `📋 /onboarding — Actualizar perfil financiero\n` +
-    `🤖 /preguntar — Preguntar a la IA sobre tus finanzas`,
 
   RATE_LIMITED: '⏳ Demasiadas solicitudes. Espera un momento antes de continuar.',
   ERROR_GENERAL: '❌ Ocurrió un error inesperado. Intenta de nuevo.',
@@ -47,7 +31,7 @@ export const MESSAGES = {
   EXPENSE_SAVED: '✅ Gasto registrado correctamente.',
 };
 
-export const PAYMENT_FREQUENCIES = ['semanal', 'quincenal', 'mensual'];
+
 
 export const CHART_COLORS = {
   needs: 'rgba(255, 99, 132, 0.8)',
